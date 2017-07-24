@@ -1,0 +1,52 @@
+import java.text.SimpleDateFormat
+
+ext.sharedManifest = manifest {
+    attributes 'Implementation-Title': "${project.name.replace('-', ' ').capitalize()}",
+        'Implementation-Version': version,
+        'Commit-ID': (hasProperty('gitinfo') ? gitinfo.commit : '')
+}
+jar {
+    manifest = sharedManifest
+    enabled = true
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task sourceJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+    include 'com/**'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+
+
+javadoc {
+    def year = new SimpleDateFormat('yyyy').format(new Date())
+    def docVersion = version.originalVersion
+    def isRoot = project == project.rootProject
+    def pName = project.name.capitalize()
+    //include 'com/example/app/**'
+    options.docTitle = "<b>${pName}</b>"
+    options.charSet = 'UTF-8'
+    options.locale = 'en'
+    options.noDeprecated().showFromPublic().showFromProtected()
+    options.use = true
+    options.version = true
+    options.author = true
+    options.splitIndex = true
+    //    options.header = ('<a href="http://www.proteusframework.com/" target="_top">Proteus Application Framework</a><br>'
+    //            + "${isRoot?'':pName} v${docVersion}")
+    options.header = "${pName}<br> v${docVersion}".toString()
+    options.windowTitle = "${pName} v${docVersion}"
+    options.footer = """<p id="copyright" align="center";>&copy; ${year} ${pName}</p>"""
+    options.links = [
+        'http://docs.oracle.com/javaee/7/api/',
+        'http://docs.oracle.com/javase/8/docs/api/',
+        'http://google.github.io/guava/releases/22.0/api/docs/',
+    ]
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

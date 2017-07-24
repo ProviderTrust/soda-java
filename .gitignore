@@ -8,3 +8,5 @@ src/test/resources/TestConfig.properties
 .classpath
 .project
 .settings
+build/gradle/
+out/

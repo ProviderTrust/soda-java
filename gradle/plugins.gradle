@@ -1,0 +1,12 @@
+
+// Compilation
+apply plugin: 'java'
+
+// Intellij IDEA
+apply plugin: 'idea'
+
+
+// Publishing
+apply plugin: 'ivy-publish'
+apply plugin: 'maven-publish'
+apply plugin: "com.jfrog.artifactory"

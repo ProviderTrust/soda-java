@@ -1,0 +1,71 @@
+import com.proteusframework.build.GitInfo
+import org.gradle.authentication.http.BasicAuthentication
+
+buildscript {
+    repositories {
+        if(hasLocalRepo){ maven { url = local_repo } }
+        maven {
+            url repoReleaseURL
+            credentials {
+                username "${repo_venturetech_username}"
+                password "${repo_venturetech_password?:''}"
+            }
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+    dependencies {
+        classpath 'org.ajoberstar:gradle-git:1.3.0'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:3.1.1'
+    }
+}
+repositories {
+//    mavenLocal()
+    if(hasLocalRepo){ maven { url = local_repo } }
+    maven {
+        url repoReleaseURL
+        credentials {
+            username repo_venturetech_username
+            password repo_venturetech_password
+        }
+        authentication {
+            basic(BasicAuthentication)
+        }
+    }
+    maven {
+        url repoSnapshotURL
+        credentials {
+            username repo_venturetech_username
+            password repo_venturetech_password
+        }
+        authentication {
+            basic(BasicAuthentication)
+        }
+    }
+}
+GitInfo.populateProject(project)
+
+apply from: 'gradle/plugins.gradle'
+apply from: 'gradle/config.gradle'
+apply from: 'gradle/dependencies.gradle'
+apply from: 'gradle/artifacts.gradle'
+apply from: 'gradle/tests.gradle'
+apply from: 'gradle/publishing.gradle'
+
+task createProject(type: com.proteusframework.build.CreateProjectTask)
+
+task autoDeploy(type: com.proteusframework.build.DeployTask) {
+    group = 'Publishing'
+    id = "${findProperty('aws_id')?:'MISSING_ID'}"
+    secret ="${findProperty('aws_secret')?:'MISSING_SECRET'}"
+}
+
+task wrapper(type: Wrapper) {
+    group 'Build Setup'
+    gradleVersion = '3.3'
+}
+
+
+
+
