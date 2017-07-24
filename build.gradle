@@ -53,7 +53,6 @@ apply from: 'gradle/artifacts.gradle'
 apply from: 'gradle/tests.gradle'
 apply from: 'gradle/publishing.gradle'
 
-task createProject(type: com.proteusframework.build.CreateProjectTask)
 
 task autoDeploy(type: com.proteusframework.build.DeployTask) {
     group = 'Publishing'
