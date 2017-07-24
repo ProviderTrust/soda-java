@@ -1,16 +1,14 @@
 package com.socrata.utils;
 
-import au.com.bytecode.opencsv.CSVReader;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.opencsv.CSVReader;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nullable;
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -65,7 +63,7 @@ public class GeneralUtils
     public static List<Map<String, Object>> readInCsv(final File csvFile) throws IOException
     {
         FileReader  fileReader = new FileReader(csvFile);
-        CSVReader   reader = new CSVReader(fileReader);
+        CSVReader reader = new CSVReader(fileReader);
 
         List<Map<String, Object>> retVal = new ArrayList<Map<String, Object>>();
         String[]    headers = reader.readNext();
