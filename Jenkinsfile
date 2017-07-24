@@ -83,161 +83,19 @@ node {
     step([$class: 'TasksPublisher', canComputeNew: true, defaultEncoding: '', excludePattern: '', healthy: '', high: 'FIXME',
           low: 'FUTURE', normal: 'TODO', pattern: 'src/**/*.java', unHealthy: ''])
 
-
-    //noinspection LongLine
-    stash excludes: '**/runtime-aspects/**,**/compiletime-aspects/**,**/build/gradle/libs/*,**/build/gradle/tmp/**/*,.idea/**/*,.git/**/*', name: 'Soda API buildFiles'
-}
-stage 'Tests In Parallel'
-parallel(["Unit Tests": {
-    node {
-        //        stage 'Unit Tests'
-        def jdkHome = tool 'JDK 8'
-        unstash 'Soda API buildFiles'
-        withEnv(["JAVA_HOME=$jdkHome"]) {
-            // Run the build
-            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-                sh "./gradlew test $gradleOptions"
-            }
-        }
-        step([$class: 'JUnitResultArchiver', allowEmptyResults: true, healthScaleFactor: 2.0,
-              keepLongStdio: true, testResults: '**/build/gradle/test-results/TEST*.xml'])
-
-    }
-}, "Integration Tests": {
-
-    node {
-        //        stage 'Integration Tests'
-        def jdkHome = tool 'JDK 8'
-        unstash 'Soda API buildFiles'
-
-        withEnv(["JAVA_HOME=$jdkHome"]) {
-            // Run the build
-            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-                sh "./gradlew test -PtestGroups=integration $gradleOptions"
-            }
-        }
-        step([$class: 'JUnitResultArchiver', allowEmptyResults: true, healthScaleFactor: 4.0,
-              keepLongStdio: true, testResults: '**/build/gradle/test-results/TEST*.xml'])
-
-    }
-
-}, failFast: true])
-
-node {
-    stage 'Coding Convention Review'
-    def jdkHome = tool 'JDK 8'
-    unstash 'Soda API buildFiles'
-
+    stage 'Tests In Parallel'
     withEnv(["JAVA_HOME=$jdkHome"]) {
         // Run the build
         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-            sh "./gradlew checkstyleMain $gradleOptions"
+            sh "./gradlew test $gradleOptions"
         }
     }
-    step([$class: 'CheckStylePublisher', canComputeNew: true, defaultEncoding: 'UTF-8', failedTotalAll: '30',
-          failedTotalHigh: '5', failedTotalNormal: '20', healthy: '20', pattern: '**/build/gradle/reports/checkstyle/*.xml',
-          unHealthy: '50', unstableTotalAll: '40', unstableTotalHigh: '10', unstableTotalNormal: '30'])
-
+    step([$class: 'JUnitResultArchiver', allowEmptyResults: true, healthScaleFactor: 2.0,
+          keepLongStdio: true, testResults: '**/build/gradle/test-results/TEST*.xml'])
 
 }
 
-node {
-    stage 'Code Quality'
-    def jdkHome = tool 'JDK 8'
-    unstash 'Soda API buildFiles'
 
-    withEnv(["JAVA_HOME=$jdkHome"]) {
-        // Run the build
-        wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-            sh "./gradlew findbugsMain $gradleOptions"
-        }
-    }
-    step([$class: 'FindBugsPublisher', canComputeNew: true, defaultEncoding: 'UTF-8', excludePattern: '', failedTotalAll: '15',
-          failedTotalHigh: '5', failedTotalNormal: '10', healthy: '5', includePattern: '',
-          pattern: '**/build/gradle/reports/findbugs/*.xml', thresholdLimit: 'normal', unHealthy: '50', unstableTotalAll: '5',
-          unstableTotalHigh: '2', unstableTotalNormal: '5'])
-
-    stage 'JavaDoc'
-
-    withEnv(["JAVA_HOME=$jdkHome"]) {
-        // Run the build
-        wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-            sh "./gradlew javadoc $gradleOptions"
-        }
-    }
-    step([$class: 'WarningsPublisher', canComputeNew: true, canResolveRelativePaths: false,
-          consoleParsers: [[parserName: 'JavaDoc Tool']], defaultEncoding: '', excludePattern: '', healthy: '',
-          includePattern: '', messagesPattern: '', unHealthy: ''])
-
-    step([$class: 'JavadocArchiver', javadocDir: 'build/gradle/docs/javadoc', keepAll: false])
-
-    step([$class: 'AnalysisPublisher', canComputeNew: true, defaultEncoding: '',
-          healthy: '', pmdActivated: false, unHealthy: ''])
-
-    step([$class: 'GitHubCommitStatusSetter', errorHandlers: [[$class: 'ShallowAnyErrorHandler']]])
-
-    stage 'Libraries'
-    withEnv(["JAVA_HOME=$jdkHome"]) {
-        // Run the build
-        wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-            sh "./gradlew classes $gradleOptions -Pcompile_libraries=true"
-        }
-    }
-
-    if(false && currentBuild.result == 'SUCCESS') {
-        try
-        {
-            if(isSnapshot || isRelease)
-            {
-                stage 'Publish'
-                timeout(time: 5, unit: 'MINUTES') {
-                    //noinspection LongLine
-                    slackSend channel: '#ci-jenkins-build', teamDomain: 'providertrust.slack.com', token: 'xYngIvl9Nv0XnKko8iu5qH5I', color: 'good', message: "${atUser}${env.JOB_NAME} ${currentBuild.displayName} can be published to the artifactory repo.\n(<${env.JOB_URL}|Open>)"
-
-                    //noinspection LongLine
-                    def params = input id: 'Publish', message: 'Publish Artifacts To Repo Server', ok: 'Publish Artifacts', parameters: [[$class: 'StringParameterDefinition', defaultValue: 'rtennant', description: 'Username to publish artifacts', name: 'publish_venturetech_username'], [$class: 'PasswordParameterDefinition', defaultValue: '', description: 'Password publish artifacts', name: 'publish_venturetech_password']]
-
-                    withEnv(["JAVA_HOME=$jdkHome", "GRADLE_OPTS=-Xmx2024m -Xms512m"]) {
-                        // Run the build
-                        wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-                            //noinspection LongLine
-                            echo "Publishing artifacts"
-                            //noinspection LongLine
-                            def additionalArgs = $/artifactoryPublish -Ppublish_venturetech_username=${params.publish_venturetech_username} -Ppublish_venturetech_password=${params.publish_venturetech_password}/$
-                            sh "./gradlew $gradleOptions $additionalArgs"
-                        }
-                    }
-
-                }
-            }
-            if(isSnapshot)
-            {
-                stage 'Deploy'
-                timeout(time: 15, unit: 'MINUTES') {
-                    //noinspection LongLine
-                    slackSend channel: '#ci-jenkins-build', teamDomain: 'providertrust.slack.com', token: 'xYngIvl9Nv0XnKko8iu5qH5I', color: 'good', message: "${atUser}${env.JOB_NAME} ${currentBuild.displayName} can be deployed to QA for testing.\n(<${env.JOB_URL}|Open>)"
-                    input id: 'Deploy', message: 'Deploy build to QA Server?', ok: 'Deploy'
-                    withEnv(["JAVA_HOME=$jdkHome"]) {
-                        //noinspection LongLine
-                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'aws_id', credentialsId: 'proteus-sys-jenkins-integration', secretKeyVariable: 'aws_secret']]) {
-                            // Run the build
-                            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'css']) {
-                                //noinspection LongLine
-                                echo "Deploying artifacts"
-                                def additionalArgs = "autoDeploy -Paws_id=${env.aws_id} -Paws_secret=${env.aws_secret}"
-                                sh "./gradlew $gradleOptions $additionalArgs"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch(error){
-            echo "$error"
-            //Skipping publish task
-        }
-    }
-}
 
 if(currentBuild.result == 'FAILURE') {
     //noinspection LongLine
